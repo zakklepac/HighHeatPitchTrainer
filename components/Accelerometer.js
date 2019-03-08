@@ -1,97 +1,78 @@
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import {StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Accelerometer } from 'expo';
 
 export default class AccelerometerSensor extends React.Component {
-    constructor (props){
-        super(props);
-        this.state={
-            accelerometerData: {},
-            start: 0,
-            finish: 0,
-        }
-    }
+  state = {
+    accelerometerData: {},
+  }
 
-    componentDidMount(){
-        this.readAccelerometer();
-    }
+  componentDidMount() {
+    this._toggle();
+  }
 
-    componentWillUnmount(){
-        setTimeout(Accelerometer.removeAllListeners(), 1000);
-    }
-    
-    //read accelerometer
-    readAccelerometer(){
-        this.subscription = Accelerometer.addListener(accelerometerData => {
-                this.setState({ accelerometerData });
-                this.getStart()
-                this.getFinish()
-          })
-          
-    }
+  componentWillUnmount() {
+    this._unsubscribe();
+  }
 
-    //"diagnose speed"
-    getStart(){
-        let { x, y, z } = this.state.accelerometerData;
-        let data = y
-        
-        if (data <= 0) {
-            let start = Date.now()
-            this.setState({ start: start })
-        }
+  _toggle = () => {
+    if (this._subscription) {
+      this._unsubscribe();
+    } else {
+      this._subscribe();
     }
+  }
 
-    getFinish(){
-        let { x, y, z } = this.state.accelerometerData;
-        let data = y
-        
-        if (data > 0) {
-            let finish = Date.now()
-            this.setState({ finish: finish })
-        }
+  _slow = () => {
+    Accelerometer.setUpdateInterval(1000); 
+  }
 
-    }
+  _fast = () => {
+    Accelerometer.setUpdateInterval(16);
+  }
 
-    toggle(){
-        if (start !== 0 && finish !== 0)
-        return true
-    }
+  _subscribe = () => {
+    this._subscription = Accelerometer.addListener(accelerometerData => {
+      this.setState({ accelerometerData });
+    });
+  }
 
-    throwPitch = () =>{
-        Accelerometer.setUpdateInterval(8)
-    }
+  _unsubscribe = () => {
+    this._subscription && this._subscription.remove();
+    this._subscription = null;
+  }
 
   render() {
-    let { y } = this.state.accelerometerData;
-    let start = this.state.start;
-    let finish = this.state.finish;
-
-    function round(n) {
-        if (!n) {
-          return 0;
-        }
-      
-        return Math.floor(n * 100) / 100;
-      }
-      
-      function getScore(a, b){
-          if (!a && !b){
-              return 0
-          }
-      
-          return (a - b) 
-      }
+    let { x, y, z } = this.state.accelerometerData;
 
     return (
       <View style={styles.sensor}>
-        <Text>HIGH HEAT PITCHING</Text>
-        <Text>windup: {round(y)} pitch score: { getScore(finish, start) }</Text>
+        <Text>Accelerometer:</Text>
+        <Text>x: {round(x)} y: {round(y)} z: {round(z)}</Text>
+
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity onPress={this._toggle} style={styles.button}>
+            <Text>Toggle</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={this._slow} style={[styles.button, styles.middleButton]}>
+            <Text>Slow</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={this._fast} style={styles.button}>
+            <Text>Fast</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     );
   }
 }
 
+function round(n) {
+  if (!n) {
+    return 0;
+  }
 
+  return Math.floor(n * 100) / 100;
+}
 
 const styles = StyleSheet.create({
   container: {
